@@ -1,5 +1,7 @@
 
 uhd_srccodes/x64/Debug/uhd_srccodes.tlog/unsuccessfulbuild
+*.exe
+*.ixx
 *.idb
 *.tlog
 *.ipch
@@ -19,3 +21,6 @@ uhd_srccodes/x64/Debug/uhd_srccodes.tlog/unsuccessfulbuild
 .vs/uhd_imgui/v17/.suo
 uhd_srccodes/x64/Release/uhd_srccodes.vcxproj.FileListAbsolute.txt
 x64/Release/uhd_srccodes.exe
+*.opendb
+*.db-wal
+*.db-shm

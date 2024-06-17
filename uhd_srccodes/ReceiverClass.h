@@ -28,16 +28,25 @@
 #include <string>
 #include "ipp.h"
 
+namespace po = boost::program_options;
+
 class ReceiverClass
 {
 private:
-	// USRP recording metric
+	
 	uhd::usrp::multi_usrp::sptr rx_usrp;
+
+	// USRP States
+	bool USRPinitializedflag = false;
+	bool USRPconfiguredflag = false;
+	int USRPgpsflag = 0; // states: -1(unconfigurable),0(optional) ,1(set to be configured)
+
+	// USRP Config Parameters
 	double rxfreq;
 	int rxrate;
 	double rxgain, lo_offset;
-	size_t samps_per_buff = 10000; 
-	size_t rx_ch = 1;
+	size_t samps_per_buff; 
+	size_t rx_ch = 0;
 
 	// File saving metric
 	int buffidx = 0, buffidx2save = -1;
@@ -97,7 +106,9 @@ private:
 	// Thread control
 	bool Receivingflag = true;
 	bool Stopflag = false;
-	std::thread savethread;
+	std::thread thrd_startup;
+	std::thread thrd_receivethread;
+	std::thread thrd_savethread;
 	std::mutex mut;
 	std::condition_variable cv;
 
@@ -120,24 +131,31 @@ private:
 	}
 
 public:
-	ReceiverClass(uhd::usrp::multi_usrp::sptr in_rx_usrp, double in_rxfreq,
-		int in_rxrate, double in_lo_offset, double in_rxgain)
-		: rx_usrp{in_rx_usrp}, rxfreq{in_rxfreq}, rxrate{in_rxrate}, 
-		rxgain{in_rxgain}, lo_offset{ in_lo_offset }
+	ReceiverClass()
 	{
-		configure();
-		printf("Configuration Completed.\n");
-		checkConfig();
-		allocMem();
-		printf("Receiver Class initialized.\n  Receiving at Centre freq = %f, RXrate = %f, Gain = %f\n", rx_usrp->get_rx_freq(rx_ch), 
-			rx_usrp->get_rx_rate(rx_ch), rx_usrp->get_rx_gain(rx_ch));
 	}
 	~ReceiverClass()
 	{
 		freeMem();
 	}
+
+	void initializeUSRP();
+	bool getUSRPinitflag() { return USRPinitializedflag; }
+	void USRPconfigure(double in_rxfreq, int in_rxrate, double in_rxgain, double in_lo_offset)
+	{
+		rxfreq = in_rxfreq;
+		rxrate = in_rxrate;
+		rxgain = in_rxgain;
+		lo_offset = in_lo_offset;
+		configure();
+		USRPconfiguredflag = true;
+	}
+
+	uhd::usrp::multi_usrp::sptr getRxUSRP() {return rx_usrp;}
+	bool getUSRPconfiguredflag() { return USRPconfiguredflag; }
 	void configure();
 	bool checkConfig();
+	void sync_to_gps();
 	std::vector<double>& getAmpVec() { return ampVec;}
 
 	// Start the receiver and the process loop
