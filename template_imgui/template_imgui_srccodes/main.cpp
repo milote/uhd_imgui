@@ -134,11 +134,15 @@ int main(int, char**)
     double gain_input = 20.0;  
     double lo_offset_input = 0.0;
     char StatusTxt[512];
+    const char* clocksrcoptions[] = { "Internal", "GPSDO" };
+    static int clocksrc_curridx = 0;
+    const char* combo_preview_value = clocksrcoptions[clocksrc_curridx];
 
     //Additional ImGUI variables
     ImGuiStyle& style = ImGui::GetStyle();
     ImGuiWindowFlags window_flags = 0;
     ImVec4 clear_color = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    static ImGuiComboFlags flags = 0;
 
     // Main loop
     bool done = false;
@@ -186,26 +190,46 @@ int main(int, char**)
 
             if (ConnectInitflag){
                 ImGui::SameLine();
-                if (!MyReceiver.getUSRPinitflag()) {
+                if (!MyReceiver.getUSRPinitflag())
                     ImGui::TextColored(ImVec4(0.7f, 0.35f, 0.0f, 1.0f), "Please Wait...");
-                    ImGui::BeginDisabled();
-                }
                 else{
                     ImGui::EndDisabled();
                     snprintf(StatusTxt, 512, "USRP %s connected! Please proceed...", MyReceiver.getRxUSRP()->get_mboard_name());
                     ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), StatusTxt);
                 }
             }
-                
             ImGui::InputDouble("Center Frequency (MHz)", &fc_input);
             ImGui::InputInt("Sampling Frequency (MHz)", &fs_input);
             ImGui::InputDouble("Gain", &gain_input);
             ImGui::InputDouble("LO offset (kHz)", &lo_offset_input);
+            if (MyReceiver.getUSRPgpsflag() == -1) {
+                clocksrc_curridx = 0;
+                ImGui::BeginDisabled();
+            }
+            const char* combo_preview_value = clocksrcoptions[clocksrc_curridx];
+            if (ImGui::BeginCombo("Set Clock Source", combo_preview_value, flags)){
+                for (int n = 0; n < IM_ARRAYSIZE(clocksrcoptions); n++){
+                    const bool is_selected = (clocksrc_curridx == n);
+                    if (ImGui::Selectable(clocksrcoptions[n], is_selected))
+                        clocksrc_curridx = n;
+
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            if (MyReceiver.getUSRPgpsflag() == -1) {
+                ImGui::EndDisabled();
+            }
+
+            if (!MyReceiver.getUSRPinitflag())
+                ImGui::BeginDisabled();
             if (ImGui::Button("Start Recording."))
-                MyReceiver.USRPconfigure(fc_input * 1e6, int(fs_input * 1e6), gain_input, lo_offset_input);
+                MyReceiver.USRPconfigure(fc_input * 1e6, int(fs_input * 1e6), gain_input, lo_offset_input, clocksrc_curridx);
             if (!MyReceiver.getUSRPinitflag())
                 ImGui::EndDisabled();
-
+            ImGui::SameLine();
             if (MyReceiver.getUSRPconfiguredflag())
             {
                 snprintf(StatusTxt, 512, "Center Freq: %.3fMHz, RxRate: %.3fMHz, Gain: %.3f, lo_offset: %.3fkHz", MyReceiver.getRxUSRP()->get_rx_freq(0) / 1e6,

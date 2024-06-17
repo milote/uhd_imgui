@@ -140,8 +140,9 @@ public:
 	}
 
 	void initializeUSRP();
-	bool getUSRPinitflag() { return USRPinitializedflag; }
-	void USRPconfigure(double in_rxfreq, int in_rxrate, double in_rxgain, double in_lo_offset)
+	bool getUSRPinitflag() { return USRPinitializedflag;}
+	int getUSRPgpsflag() { return USRPgpsflag; }
+	void USRPconfigure(double in_rxfreq, int in_rxrate, double in_rxgain, double in_lo_offset, int in_clocksource)
 	{
 		rxfreq = in_rxfreq;
 		rxrate = in_rxrate;
@@ -149,6 +150,8 @@ public:
 		lo_offset = in_lo_offset;
 		configure();
 		USRPconfiguredflag = true;
+		if (in_clocksource==1) //0:internal 1:GPSDO
+			sync_to_gps();
 	}
 
 	uhd::usrp::multi_usrp::sptr getRxUSRP() {return rx_usrp;}

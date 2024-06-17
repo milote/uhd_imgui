@@ -28,18 +28,18 @@ bool ReceiverClass::checkConfig()
 {
 	if (rx_usrp->get_rx_gain(rx_ch) != rxgain) {
 		printf("Actual RX Gain: %f\n", rx_usrp->get_rx_gain(rx_ch));
-		throw 1;
+        return false;
 	}
 
 	if (round(rx_usrp->get_rx_freq(rx_ch)) != rxfreq) {
 		printf("Intended RX Freq: %.4f\n", rxfreq);
 		printf("Actual RX Freq: %f\n", rx_usrp->get_rx_freq(rx_ch));
-		throw 2;
+        return false;
 	}
 
 	if (round(rx_usrp->get_rx_rate(rx_ch)) != rxrate) {
 		printf("Actual RX Rate: %f Msps\n", rx_usrp->get_rx_rate(rx_ch));
-		throw 3;
+        return false;
 	}
 
 	return true;
@@ -53,8 +53,11 @@ void ReceiverClass::start()
 	channel_nums.push_back(rx_ch); 
 	
 	// Lock mboard clocks
-	rx_usrp->set_clock_source("GPSDO");
-	rx_usrp->set_time_source("GPSDO");
+    if (USRPgpsflag == 1){
+        rx_usrp->set_clock_source("GPSDO");
+        rx_usrp->set_time_source("GPSDO");
+    }
+
 	std::cout << boost::format("Using RX Clock Source: %s") % rx_usrp->get_clock_source(0) << std::endl;
 	std::cout << boost::format("Using RX Time Source: %s") % rx_usrp->get_time_source(0) << std::endl;
 	std::cout << boost::format("Using RX Device: %s") % rx_usrp->get_pp_string()
@@ -135,12 +138,11 @@ void ReceiverClass::savefile()
 
 void ReceiverClass::sync_to_gps()
 {
-    if (USRPgpsflag == -1)
-    {
+    if (USRPgpsflag == -1){
         std::cout << "Connected USRP does not have GPSDO!\n";
         return;
     }
-        
+
     std::cout << boost::format("Using Device: %s\n") % rx_usrp->get_pp_string();
 
     try {
